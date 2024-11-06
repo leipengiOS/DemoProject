@@ -5,113 +5,105 @@
  * @format
  */
 
+// App.js
 import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import { SafeAreaView, StyleSheet, StatusBar, View, Text, Modal, Button, Alert } from 'react-native';
+import WebView from 'react-native-webview';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const App = () => {
+  const webViewRef = React.useRef(null);
+  const [modalVisible, setModalVisible] = React.useState(false);
+  const [message, setMessage] = React.useState('');
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+  const generateRandomKey = () => parseInt((Math.random() * 100000).toString(), 10);
+  const [key, setKey] = React.useState(generateRandomKey());
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+  const showMessageModal = (msg) => {
+    setMessage(msg);
+    setModalVisible(true);
+  };
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const sendMessageToH5 = () => {
+    webViewRef.current?.injectJavaScript('receiveMessage("react-native send this message to H5: MSG COMFIRMED!")');
+    setModalVisible(false);
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <SafeAreaView style={{ flex: 1 }}>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}
+      >
+        <View style={styles.centeredView}>
+          <Text style={styles.modalText}>{message}</Text>
+          <Button
+            title="confirm"
+            onPress={sendMessageToH5}
+          />
         </View>
-      </ScrollView>
+      </Modal>
+      <WebView
+        source={{ uri: 'https://demo.ipolyv.cn/tanglianghong/test/v3/ReactNativeWebView/?channelId=5005175&lang=en&console=1&#39;'}}
+        // source={{ uri: 'https://www.baidu.com'}}
+        key={key}
+        ref={webViewRef}
+        scalesPageToFit={true}
+        style={{ flex: 1, backgroundColor: 'white' }}
+        startInLoadingState={true}
+        limitsNavigationsToAppBoundDomains={true}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        allowsLinkPreview={true}
+        setSupportMultipleWindows={false}
+        onShouldStartLoadWithRequest={(r) => {
+          return true;
+        }}
+        onNavigationStateChange={(navState) => {
+          console.log(navState.url);
+          console.log(navState.loading);
+        }}
+        onContentProcessDidTerminate={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.log('Content process terminated, reloading', nativeEvent);
+        }}
+        originWhitelist={['*']}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('WebView error: ', nativeEvent);
+        }}
+        onMessage={(event) => {
+          showMessageModal(event.nativeEvent.data);
+        }}
+        onLoadEnd={data => {
+          const { nativeEvent } = data;
+          const { title } = nativeEvent;
+
+          if (!title.trim()) {
+            // webViewRef.current?.stopLoading();
+            // webViewRef.current?.reload();
+            // setKey(generateRandomKey());
+          }
+        }}
+      />
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 200,
+    backgroundColor: 'white',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  modalText: {
+    marginBottom: 20,
+    textAlign: 'center',
   },
 });
 
